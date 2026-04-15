@@ -39,7 +39,7 @@ $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Active Directory Scan Tool"
-        Height="600" Width="950"
+        Height="680" Width="950"
         Background="#FF0B1E3A"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize">
@@ -60,8 +60,8 @@ $xaml = @"
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3*"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="2*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
