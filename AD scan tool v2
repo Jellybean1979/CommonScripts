@@ -71,7 +71,7 @@ $xaml = @"
                 <TextBlock Text="Active Directory Scan Tool" FontSize="20" FontWeight="Bold" Margin="0,0,10,0"/>
                 <TextBlock Text="(CSV: No headers, Column A only)" FontSize="12" VerticalAlignment="Bottom" Opacity="0.8"/>
             </StackPanel>
-            <TextBlock Text="by: Gary Langley" FontSize="13" FontWeight="Bold" Opacity="0.8" Margin="0,2,0,0"/>
+            <TextBlock Text="by: Gary Langley  |  v2.1" FontSize="13" FontWeight="Bold" Opacity="0.8" Margin="0,2,0,0"/>
         </StackPanel>
 
         <!-- File selection -->
