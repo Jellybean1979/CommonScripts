@@ -1,9 +1,7 @@
 Add-Type -AssemblyName PresentationFramework
 
-# ---------------- IMAGE PATH FIX ----------------
-# Ensure relative image paths resolve from the script's own folder
+# ---------------- SCRIPT DIRECTORY ----------------
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $scriptDir
 
 # ---------------- CONFIG ----------------
 $server = "mdvl-qs-150v"
@@ -60,8 +58,8 @@ $xaml = @"
             </Grid.ColumnDefinitions>
 
             <!-- Left Image -->
-            <Image Grid.Column="0"
-                   Source="186ARW NoBG.jpg"
+            <Image x:Name="LeftImage"
+                   Grid.Column="0"
                    Height="60"
                    Margin="0,0,15,0"
                    Stretch="Uniform"
@@ -81,8 +79,8 @@ $xaml = @"
             </StackPanel>
 
             <!-- Right Image -->
-            <Image Grid.Column="2"
-                   Source="186CS NoBG.png"
+            <Image x:Name="RightImage"
+                   Grid.Column="2"
                    Height="60"
                    Margin="15,0,0,0"
                    Stretch="Uniform"
@@ -138,6 +136,29 @@ $xaml = @"
 # ---------------- LOAD XAML ----------------
 $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
+
+$LeftImage   = $window.FindName("LeftImage")
+$RightImage  = $window.FindName("RightImage")
+
+# ---------------- LOAD IMAGES (absolute paths - reliable) ----------------
+$leftPath  = Join-Path $scriptDir "186ARW NoBG.jpg"
+$rightPath = Join-Path $scriptDir "186CS NoBG.png"
+
+if (Test-Path $leftPath) {
+    $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
+    $bmp.BeginInit()
+    $bmp.UriSource = [Uri]$leftPath
+    $bmp.EndInit()
+    $LeftImage.Source = $bmp
+}
+
+if (Test-Path $rightPath) {
+    $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
+    $bmp.BeginInit()
+    $bmp.UriSource = [Uri]$rightPath
+    $bmp.EndInit()
+    $RightImage.Source = $bmp
+}
 
 $DeptCombo   = $window.FindName("DeptCombo")
 $SearchBox   = $window.FindName("SearchBox")
