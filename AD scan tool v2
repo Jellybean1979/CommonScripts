@@ -1,20 +1,22 @@
 # ---------------------------
 # STA mode is required for WPF drag and drop.
-# If not already in STA, relaunch in STA and exit.
+# Only relaunch if we have a valid script path to pass.
 # ---------------------------
 if ([System.Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
-    Start-Process powershell.exe -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
-    exit
+    if ($PSCommandPath) {
+        Start-Process powershell.exe -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+        exit
+    }
 }
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
 # ---------------------------
 # Allow drag & drop through UIPI when running as Administrator.
-# Without this, Windows blocks drag messages from lower-privilege
-# processes (like Explorer) reaching an elevated PowerShell window.
+# Skip Add-Type if the class was already loaded (e.g. script re-run in same session).
 # ---------------------------
-Add-Type -TypeDefinition @"
+if (-not ([System.Management.Automation.PSTypeName]'DragDropHelper').Type) {
+    Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
 public class DragDropHelper {
@@ -28,6 +30,7 @@ public class DragDropHelper {
     public const uint MSGFLT_ALLOW       = 1;
 }
 "@
+}
 
 # ---------------------------
 # GUI XAML
@@ -652,7 +655,7 @@ $btnStart.Add_Click({
         if (-not (Get-Module -Name ActiveDirectory)) {
             Write-BGLog "ERROR: ActiveDirectory module could not be loaded. Aborting scan."
             $sync.Window.Dispatcher.Invoke([action]{
-                $sync.StatusLabel.Text   = "Error — AD module missing."
+                $sync.StatusLabel.Text   = "Error - AD module missing."
                 $sync.BtnStart.IsEnabled = $true
             })
             return
@@ -728,7 +731,7 @@ $btnStart.Add_Click({
         Write-BGLog "AD scan completed."
 
         # Clean up the runspace
-        $ps.Dispose()
+        $sync.PS.Dispose()
 
     }).AddArgument($sync)
 
