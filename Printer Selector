@@ -1,0 +1,220 @@
+Add-Type -AssemblyName PresentationFramework
+
+# ---------------- CONFIG ----------------
+$server = "mdvl-qs-150v"
+$printers = Get-Printer -ComputerName $server
+
+$parsed = $printers | ForEach-Object {
+    if ($_.Name -match '^(?<Dept>.+?)(?<Building>b\d+)(?<Room>r.+)$') {
+
+        $buildingRaw = $Matches['Building']
+        $roomRaw = $Matches['Room']
+
+        $buildingClean = $buildingRaw.Substring(1)
+        $roomClean = $roomRaw.Substring(1)
+
+        [PSCustomObject]@{
+            FullName      = $_.Name
+            Department    = $Matches['Dept']
+            Building      = $buildingRaw
+            Room          = $roomRaw
+            BuildingClean = $buildingClean
+            RoomClean     = $roomClean
+        }
+    }
+}
+
+# ---------------- XAML UI ----------------
+$xaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="186th ARW Printer Selector" Height="450" Width="700"
+        WindowStartupLocation="CenterScreen"
+        Background="#003366" Foreground="White">
+
+    <Grid Margin="15">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Title Row -->
+            <RowDefinition Height="Auto"/>   <!-- Department -->
+            <RowDefinition Height="Auto"/>   <!-- Search -->
+            <RowDefinition Height="*"/>      <!-- Printer List -->
+            <RowDefinition Height="Auto"/>   <!-- Buttons -->
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Title Row with Images -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Image -->
+            <Image Grid.Column="0"
+                   Source="186ARW NoBG.jpg"
+                   Height="60"
+                   Margin="0,0,15,0"
+                   Stretch="Uniform"/>
+
+            <!-- Center Title -->
+            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                <TextBlock Text="186th ARW Printer Selector"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="by: Gary Langley |  Version 1 "
+                           FontSize="14"
+                           HorizontalAlignment="Center"
+                           Foreground="White"
+                           Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- Right Image -->
+            <Image Grid.Column="2"
+                   Source="186CS NoBG.png"
+                   Height="60"
+                   Margin="15,0,0,0"
+                   Stretch="Uniform"/>
+        </Grid>
+
+        <!-- Department Row -->
+        <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,10">
+            <TextBlock Text="Department:" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <ComboBox x:Name="DeptCombo" Width="200" />
+        </StackPanel>
+
+        <!-- Search Row -->
+        <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,0,0,10">
+            <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <TextBox x:Name="SearchBox" Width="250" />
+            <TextBlock Text=" (name, building, room)" Margin="10,0,0,0"
+                       VerticalAlignment="Center" Opacity="0.7"/>
+        </StackPanel>
+
+        <!-- Printers List -->
+        <ListBox x:Name="PrinterList" Grid.Row="3" SelectionMode="Extended"
+                 Background="#c6e2ff" BorderBrush="#FF444444">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Vertical" Margin="4">
+                        <TextBlock Text="{Binding FullName}" FontWeight="Bold"/>
+                        <TextBlock FontSize="11" Opacity="0.7">
+                            <Run Text="Dept: "/>
+                            <Run Text="{Binding Department}"/>
+                            <Run Text=" | Bldg: "/>
+                            <Run Text="{Binding BuildingClean}"/>
+                            <Run Text=" | Room: "/>
+                            <Run Text="{Binding RoomClean}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="InstallButton" Content="Install Selected" Width="140" Margin="0,0,10,0"
+                    Padding="8,4" Background="#FF3A7BD5" Foreground="White"/>
+            <Button x:Name="CloseButton" Content="Close" Width="80" Padding="8,4"
+                    Background="#FF555555" Foreground="White"/>
+        </StackPanel>
+
+    </Grid>
+</Window>
+"@
+
+# ---------------- LOAD XAML ----------------
+$reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
+$window = [Windows.Markup.XamlReader]::Load($reader)
+
+$DeptCombo   = $window.FindName("DeptCombo")
+$SearchBox   = $window.FindName("SearchBox")
+$PrinterList = $window.FindName("PrinterList")
+$InstallBtn  = $window.FindName("InstallButton")
+$CloseBtn    = $window.FindName("CloseButton")
+
+# ---------------- DATA & FILTERING ----------------
+$allDepartments = @("All Departments") + ($parsed.Department | Where-Object { $_ -ne "" } | Sort-Object -Unique)
+$DeptCombo.ItemsSource = $allDepartments
+
+$global:CurrentDept = $null
+$global:CurrentSearch = ""
+
+function Update-PrinterList {
+    $items = $parsed
+
+    if ($global:CurrentDept -and $global:CurrentDept -ne "" -and $global:CurrentDept -ne "All Departments") {
+        $items = $items | Where-Object { $_.Department -eq $global:CurrentDept }
+    }
+
+    if ($global:CurrentSearch -and $global:CurrentSearch.Trim() -ne "") {
+        $s = $global:CurrentSearch.Trim()
+        $items = $items | Where-Object {
+            $_.FullName -like "*$s*" -or
+            $_.Building -like "*$s*" -or
+            $_.Room -like "*$s*"
+        }
+    }
+
+    $PrinterList.ItemsSource = @($items)
+}
+
+Update-PrinterList
+
+# ---------------- EVENTS ----------------
+$DeptCombo.Add_SelectionChanged({
+    $global:CurrentDept = $DeptCombo.SelectedItem
+    Update-PrinterList
+})
+
+$SearchBox.Add_TextChanged({
+    $global:CurrentSearch = $SearchBox.Text
+    Update-PrinterList
+})
+
+$InstallBtn.Add_Click({
+    $selected = @($PrinterList.SelectedItems)
+    if ($selected.Count -eq 0) {
+        [System.Windows.MessageBox]::Show("Select at least one printer.","No Selection",
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Information) | Out-Null
+        return
+    }
+
+    $errors = @()
+    foreach ($p in $selected) {
+        $connection = "\\$server\$($p.FullName)"
+        try {
+            Add-Printer -ConnectionName $connection -ErrorAction Stop
+        }
+        catch {
+            $errors += "Failed: $($p.FullName) - $($_.Exception.Message)"
+        }
+    }
+
+    if ($errors.Count -eq 0) {
+        [System.Windows.MessageBox]::Show("Selected printers installed successfully.",
+            "Success",
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Information) | Out-Null
+    } else {
+        [System.Windows.MessageBox]::Show(
+            ("Some printers failed:`n" + ($errors -join "`n")),
+            "Completed with Errors",
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Warning) | Out-Null
+    }
+})
+
+$CloseBtn.Add_Click({
+    $window.Close()
+})
+
+# ---------------- RUN ----------------
+$window.Topmost = $true
+$window.ShowDialog() | Out-Null
