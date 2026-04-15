@@ -1,0 +1,631 @@
+Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
+
+# Main window XAML
+$windowXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AD Computer Lookup" Height="650" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF0B1628"
+        FontFamily="Segoe UI" Foreground="White">
+    <Window.Resources>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,5,0,0"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#FF102447"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#FF3C5A8A"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5,0,0,0"/>
+            <Setter Property="Padding" Value="8,3"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Header -->
+            <RowDefinition Height="Auto"/>   <!-- File selection -->
+            <RowDefinition Height="Auto"/>   <!-- Manual search -->
+            <RowDefinition Height="*"/>      <!-- Results -->
+            <RowDefinition Height="2*"/>     <!-- Log -->
+            <RowDefinition Height="Auto"/>   <!-- Bottom bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="AD Computer Lookup"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Foreground="#FF9BD1FF"/>
+            <TextBlock Text="CSV-based and manual AD computer search"
+                       FontSize="12"
+                       Foreground="#FFB0C4DE"/>
+        </StackPanel>
+
+        <!-- File selection -->
+        <Grid Grid.Row="1" Margin="0,0,0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <Label Content="CSV File (one computer per line):"/>
+                <TextBox x:Name="txtCsvPath" Height="26" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Orientation="Horizontal">
+                <Button x:Name="btnBrowse" Content="Browse..." Width="90" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Orientation="Horizontal">
+                <Button x:Name="btnStart" Content="Start Scan" Width="100" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Manual Search -->
+        <Grid Grid.Row="2" Margin="0,5,0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <Label Content="Manual Computer Search:"/>
+                <TextBox x:Name="txtManualSearch"
+                         Height="26"
+                         ToolTip="Enter a full or partial computer name (contains match)"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Orientation="Horizontal">
+                <Button x:Name="btnManualSearch"
+                        Content="Search"
+                        Width="100"
+                        Margin="5,0,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Results -->
+        <GroupBox Grid.Row="3" Header="Results">
+            <DataGrid x:Name="dgResults"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal"
+                      Background="#FF0B1628"
+                      Foreground="White"
+                      BorderBrush="#FF3C5A8A">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Computer Name" Binding="{Binding ComputerName}" Width="*" />
+                    <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="*" />
+                    <DataGridTextColumn Header="Last Logon Timestamp" Binding="{Binding LastLogonTimestamp}" Width="*" />
+                    <DataGridTextColumn Header="Last Logon Date" Binding="{Binding LastLogonDate}" Width="*" />
+                    <DataGridTextColumn Header="Last Successful Interactive Logon" Binding="{Binding LastSuccessfulInteractiveLogonTime}" Width="*" />
+                    <DataGridTextColumn Header="Last Failed Interactive Logon" Binding="{Binding LastFailedInteractiveLogonTime}" Width="*" />
+                    <DataGridTextColumn Header="Operating System" Binding="{Binding OperatingSystem}" Width="*" />
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
+                    <DataGridTextColumn Header="Distinguished Name" Binding="{Binding DistinguishedName}" Width="2*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
+
+        <!-- Log -->
+        <GroupBox Grid.Row="4" Header="Log">
+            <TextBox x:Name="txtLog"
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     Background="#FF0B1628"
+                     Foreground="White"/>
+        </GroupBox>
+
+        <!-- Bottom bar -->
+        <Grid Grid.Row="5" Margin="0,5,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Vertical">
+                <ProgressBar x:Name="pbStatus" Height="18" Minimum="0" Maximum="100" />
+                <TextBlock x:Name="lblStatus" Margin="0,3,0,0" Text="Ready."/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="btnExport" Content="Export Results" Width="110" IsEnabled="False"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="btnHelp" Content="Help" Width="70"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="btnClose" Content="Close" Width="70"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
+"@
+
+
+# Popup window XAML for multi-match manual search
+$popupXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Matching Computers"
+        Height="400" Width="500"
+        WindowStartupLocation="CenterOwner"
+        Background="#FF0B1628"
+        FontFamily="Segoe UI" Foreground="White"
+        ResizeMode="CanResizeWithGrip">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Multiple computers matched your search. Select one or more to add to the results."
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,8"/>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="icComputers">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding Name}"
+                                  Margin="0,2,0,2"
+                                  ToolTip="{Binding Tooltip}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button x:Name="btnToggleAll" Content="Select All" Width="90" Margin="0,0,5,0"/>
+            <Button x:Name="btnAddSelected" Content="Add Selected" Width="100" Margin="0,0,5,0"/>
+            <Button x:Name="btnCancel" Content="Cancel" Width="80"/>
+        </StackPanel>
+    </Grid>
+</Window>
+"@
+
+
+
+# Parse XAML and create main window
+$reader = New-Object System.Xml.XmlNodeReader ([xml]$windowXaml)
+$window = [Windows.Markup.XamlReader]::Load($reader)
+
+# Get controls
+$txtCsvPath      = $window.FindName('txtCsvPath')
+$btnBrowse       = $window.FindName('btnBrowse')
+$btnStart        = $window.FindName('btnStart')
+$btnManualSearch = $window.FindName('btnManualSearch')
+$txtManualSearch = $window.FindName('txtManualSearch')
+$dgResults       = $window.FindName('dgResults')
+$txtLog          = $window.FindName('txtLog')
+$pbStatus        = $window.FindName('pbStatus')
+$lblStatus       = $window.FindName('lblStatus')
+$btnExport       = $window.FindName('btnExport')
+$btnHelp         = $window.FindName('btnHelp')
+$btnClose        = $window.FindName('btnClose')
+
+# Observable collection for results
+Add-Type -AssemblyName System.ObjectModel
+$results = New-Object System.Collections.ObjectModel.ObservableCollection[object]
+$dgResults.ItemsSource = $results
+
+# Sync hash for runspace
+$sync = [hashtable]::Synchronized(@{})
+$sync.Window      = $window
+$sync.Results     = $results
+$sync.LogBox      = $txtLog
+$sync.ProgressBar = $pbStatus
+$sync.StatusLabel = $lblStatus
+$sync.BtnExport   = $btnExport
+
+# Helper: log
+function Write-Log {
+    param([string]$Message, [hashtable]$sync)
+
+    $time = (Get-Date).ToString("HH:mm:ss")
+    $sync.Window.Dispatcher.Invoke([action]{
+        $sync.LogBox.AppendText("[$time] $Message`r`n")
+        $sync.LogBox.ScrollToEnd()
+    })
+}
+
+# Helper: convert AD time
+function Convert-ADTime {
+    param($Value)
+    if (-not $Value) { return $null }
+    try {
+        if ($Value -is [datetime]) { return $Value }
+        return [datetime]::FromFileTime([int64]$Value)
+    } catch {
+        return $Value
+    }
+}
+
+# Background runspace
+$runspace = [runspacefactory]::CreateRunspace()
+$runspace.ApartmentState = 'STA'
+$runspace.ThreadOptions  = 'ReuseThread'
+$runspace.Open()
+$runspace.SessionStateProxy.SetVariable('sync', $sync)
+$runspace.SessionStateProxy.SetVariable('results', $results)
+
+$ps = [powershell]::Create().AddScript({
+    Import-Module ActiveDirectory -ErrorAction SilentlyContinue
+
+    function Convert-ADTime {
+        param($Value)
+        if (-not $Value) { return $null }
+        try {
+            if ($Value -is [datetime]) { return $Value }
+            return [datetime]::FromFileTime([int64]$Value)
+        } catch {
+            return $Value
+        }
+    }
+
+    function Write-Log {
+        param([string]$Message, [hashtable]$sync)
+        $time = (Get-Date).ToString("HH:mm:ss")
+        $sync.Window.Dispatcher.Invoke([action]{
+            $sync.LogBox.AppendText("[$time] $Message`r`n")
+            $sync.LogBox.ScrollToEnd()
+        })
+    }
+
+    function Process-ComputerList {
+        param(
+            [string[]]$ComputerNames,
+            [hashtable]$sync,
+            [string]$Source
+        )
+
+        if (-not $ComputerNames -or $ComputerNames.Count -eq 0) {
+            Write-Log "No computers to process from $Source." $sync
+            return
+        }
+
+        $total = $ComputerNames.Count
+        $index = 0
+
+        $sync.Window.Dispatcher.Invoke([action]{
+            $sync.ProgressBar.Value = 0
+            $sync.StatusLabel.Text  = "Processing $total computer(s) from $Source..."
+        })
+
+        foreach ($name in $ComputerNames) {
+            $index++
+            $computerName = $name.Trim()
+            if (-not $computerName) { continue }
+
+            Write-Log "Processing [$index/$total] $computerName ($Source)" $sync
+
+            try {
+                $adComp = Get-ADComputer -Filter "Name -eq '$computerName'" -Properties `
+                    lastLogonTimestamp, lastLogonDate, `
+                    msDS-LastSuccessfulInteractiveLogonTime, `
+                    msDS-LastFailedInteractiveLogonTime, `
+                    OperatingSystem, Description, DistinguishedName, Location `
+                    -ErrorAction Stop
+            } catch {
+                $obj = [PSCustomObject]@{
+                    ComputerName                     = $computerName
+                    Location                         = "NOT FOUND"
+                    LastLogonTimestamp               = "NOT FOUND"
+                    LastLogonDate                    = "NOT FOUND"
+                    LastSuccessfulInteractiveLogonTime = "NOT FOUND"
+                    LastFailedInteractiveLogonTime   = "NOT FOUND"
+                    OperatingSystem                  = "NOT FOUND"
+                    Description                      = "NOT FOUND"
+                    DistinguishedName                = "NOT FOUND"
+                }
+                $sync.Window.Dispatcher.Invoke([action]{ $sync.Results.Add($obj) })
+                continue
+            }
+
+            $obj = [PSCustomObject]@{
+                ComputerName                     = $adComp.Name
+                Location                         = $adComp.Location
+                LastLogonTimestamp               = Convert-ADTime $adComp.lastLogonTimestamp
+                LastLogonDate                    = Convert-ADTime $adComp.lastLogonDate
+                LastSuccessfulInteractiveLogonTime = Convert-ADTime $adComp.'msDS-LastSuccessfulInteractiveLogonTime'
+                LastFailedInteractiveLogonTime   = Convert-ADTime $adComp.'msDS-LastFailedInteractiveLogonTime'
+                OperatingSystem                  = $adComp.OperatingSystem
+                Description                      = $adComp.Description
+                DistinguishedName                = $adComp.DistinguishedName
+            }
+
+            $sync.Window.Dispatcher.Invoke([action]{ $sync.Results.Add($obj) })
+
+            $percent = [int](($index / $total) * 100)
+            $sync.Window.Dispatcher.Invoke([action]{
+                $sync.ProgressBar.Value = $percent
+                $sync.StatusLabel.Text  = "Processing $index of $total ($percent`%) from $Source..."
+            })
+        }
+
+        $sync.Window.Dispatcher.Invoke([action]{
+            $sync.StatusLabel.Text = "Processing from $Source complete."
+            $sync.ProgressBar.Value = 100
+            $sync.BtnExport.IsEnabled = $true
+        })
+
+        Write-Log "Completed processing $total computer(s) from $Source." $sync
+    }
+
+    function Search-ManualComputer {
+        param(
+            [string]$SearchText,
+            [hashtable]$sync,
+            [string]$PopupXaml
+        )
+
+        $term = $SearchText.Trim()
+        if (-not $term) {
+            Write-Log "Manual search term was empty." $sync
+            return
+        }
+
+        Write-Log "Manual search for: $term (contains match)" $sync
+
+        # Initial fast search: only Name
+        try {
+            $matches = Get-ADComputer -Filter "Name -like '*$term*'" -Properties Name -ErrorAction Stop
+        } catch {
+            Write-Log "Error during manual search: $($_.Exception.Message)" $sync
+            return
+        }
+
+        if (-not $matches -or $matches.Count -eq 0) {
+            Write-Log "No computers matched '$term'." $sync
+            $sync.Window.Dispatcher.Invoke([action]{
+                [System.Windows.MessageBox]::Show("No computers matched '$term'.","Manual Search",'OK','Information') | Out-Null
+            })
+            return
+        }
+
+        # If exactly one match, just process it directly
+        if ($matches.Count -eq 1) {
+            $singleName = $matches[0].Name
+            Write-Log "Single match found: $singleName. Processing directly." $sync
+            Process-ComputerList -ComputerNames @($singleName) -sync $sync -Source "Manual Search"
+            return
+        }
+
+        # Build list with tooltip data (DN + Description + OS) via per-item detail lookup
+        $items = New-Object System.Collections.ObjectModel.ObservableCollection[object]
+
+        foreach ($m in $matches) {
+            $name = $m.Name
+            $dn = $null
+            $desc = $null
+            $os = $null
+
+            try {
+                $detail = Get-ADComputer -Identity $name -Properties Description, OperatingSystem, DistinguishedName -ErrorAction Stop
+                $dn   = $detail.DistinguishedName
+                $desc = $detail.Description
+                $os   = $detail.OperatingSystem
+            } catch {
+                # If detail lookup fails, still show the name
+            }
+
+            $tooltipLines = @()
+            if ($dn)   { $tooltipLines += $dn }
+            if ($desc) { $tooltipLines += $desc }
+            if ($os)   { $tooltipLines += $os }
+
+            if ($tooltipLines.Count -eq 0) {
+                $tooltipLines = @("No additional details available.")
+            }
+
+            $tooltipText = [string]::Join("`r`n", $tooltipLines)
+
+            $items.Add([pscustomobject]@{
+                Name    = $name
+                Tooltip = $tooltipText
+            })
+        }
+
+        # Show popup on UI thread
+        $sync.Window.Dispatcher.Invoke([action]{
+            $reader2 = New-Object System.Xml.XmlNodeReader ([xml]$PopupXaml)
+            $popup   = [Windows.Markup.XamlReader]::Load($reader2)
+
+            $icComputers  = $popup.FindName('icComputers')
+            $btnToggleAll = $popup.FindName('btnToggleAll')
+            $btnAddSel    = $popup.FindName('btnAddSelected')
+            $btnCancel    = $popup.FindName('btnCancel')
+
+            $icComputers.ItemsSource = $items
+
+            # Track toggle state
+            $selectAllState = $true
+
+            $btnToggleAll.Add_Click({
+                $selectAllState = -not $selectAllState
+                if ($selectAllState) {
+                    $btnToggleAll.Content = "Select All"
+                    foreach ($item in $icComputers.Items) {
+                        $container = $icComputers.ItemContainerGenerator.ContainerFromItem($item)
+                        if ($container -and $container.Content -is [System.Windows.Controls.CheckBox]) {
+                            $container.Content.IsChecked = $false
+                        }
+                    }
+                } else {
+                    $btnToggleAll.Content = "Deselect All"
+                    foreach ($item in $icComputers.Items) {
+                        $container = $icComputers.ItemContainerGenerator.ContainerFromItem($item)
+                        if ($container -and $container.Content -is [System.Windows.Controls.CheckBox]) {
+                            $container.Content.IsChecked = $true
+                        }
+                    }
+                }
+            })
+
+            $selectedNames = New-Object System.Collections.Generic.List[string]
+
+            $btnAddSel.Add_Click({
+                foreach ($item in $icComputers.Items) {
+                    $container = $icComputers.ItemContainerGenerator.ContainerFromItem($item)
+                    if ($container -and $container.Content -is [System.Windows.Controls.CheckBox]) {
+                        if ($container.Content.IsChecked -eq $true) {
+                            $selectedNames.Add($item.Name)
+                        }
+                    }
+                }
+
+                if ($selectedNames.Count -eq 0) {
+                    [System.Windows.MessageBox]::Show("No computers selected.","Manual Search",'OK','Warning') | Out-Null
+                    return
+                }
+
+                $popup.Tag = $selectedNames
+                $popup.DialogResult = $true
+                $popup.Close()
+            })
+
+            $btnCancel.Add_Click({
+                $popup.DialogResult = $false
+                $popup.Close()
+            })
+
+            $popup.Owner = $sync.Window
+            $null = $popup.ShowDialog()
+
+            if ($popup.DialogResult -eq $true -and $popup.Tag) {
+                # Kick off processing in background runspace (we're already in it)
+                Write-Log ("User selected {0} computer(s) from manual search popup." -f $popup.Tag.Count) $sync
+                Process-ComputerList -ComputerNames $popup.Tag -sync $sync -Source "Manual Search"
+            } else {
+                Write-Log "Manual search popup closed with no selection." $sync
+            }
+        })
+    }
+
+}) 
+
+$ps.Runspace = $runspace
+$handle = $ps.BeginInvoke()
+
+
+
+
+# Browse button
+$btnBrowse.Add_Click({
+    $ofd = New-Object Microsoft.Win32.OpenFileDialog
+    $ofd.Filter = "CSV Files (*.csv)|*.csv|Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+    if ($ofd.ShowDialog() -eq $true) {
+        $txtCsvPath.Text = $ofd.FileName
+    }
+})
+
+# Start CSV scan
+$btnStart.Add_Click({
+    $path = $txtCsvPath.Text.Trim()
+    if (-not (Test-Path $path)) {
+        [System.Windows.MessageBox]::Show("Please select a valid CSV file.","CSV Scan",'OK','Warning') | Out-Null
+        return
+    }
+
+    $sync.Window.Dispatcher.Invoke([action]{
+        $sync.Results.Clear()
+        $sync.ProgressBar.Value = 0
+        $sync.StatusLabel.Text  = "Reading CSV..."
+        $sync.BtnExport.IsEnabled = $false
+    })
+
+    $names = Get-Content -Path $path | Where-Object { $_.Trim() -ne "" }
+
+    [System.Threading.ThreadPool]::QueueUserWorkItem({
+        param($state)
+        $ComputerNames = $state.Names
+        $sync          = $state.Sync
+
+        . ([scriptblock]::Create('param($ComputerNames,$sync) Process-ComputerList -ComputerNames $ComputerNames -sync $sync -Source "CSV"')) $ComputerNames $sync
+
+    }, @{ Names = $names; Sync = $sync }) | Out-Null
+})
+
+# Manual search button
+$btnManualSearch.Add_Click({
+    $term = $txtManualSearch.Text.Trim()
+    if (-not $term) {
+        [System.Windows.MessageBox]::Show("Enter a computer name or partial name.","Manual Search",'OK','Warning') | Out-Null
+        return
+    }
+
+    [System.Threading.ThreadPool]::QueueUserWorkItem({
+        param($state)
+        $term     = $state.Term
+        $sync     = $state.Sync
+        $popupXaml = $state.PopupXaml
+
+        . ([scriptblock]::Create('param($term,$sync,$popupXaml) Search-ManualComputer -SearchText $term -sync $sync -PopupXaml $popupXaml')) $term $sync $popupXaml
+
+    }, @{ Term = $term; Sync = $sync; PopupXaml = $popupXaml }) | Out-Null
+})
+
+# Export results
+$btnExport.Add_Click({
+    if ($results.Count -eq 0) {
+        [System.Windows.MessageBox]::Show("No results to export.","Export",'OK','Information') | Out-Null
+        return
+    }
+
+    $sfd = New-Object Microsoft.Win32.SaveFileDialog
+    $sfd.Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*"
+    $sfd.FileName = "AD_Computer_Results.csv"
+    if ($sfd.ShowDialog() -ne $true) { return }
+
+    $results | Export-Csv -Path $sfd.FileName -NoTypeInformation -Encoding UTF8
+    [System.Windows.MessageBox]::Show("Results exported to:`r`n$($sfd.FileName)","Export",'OK','Information') | Out-Null
+})
+
+# Help
+$btnHelp.Add_Click({
+    [System.Windows.MessageBox]::Show(
+        "Usage:" + "`r`n`r`n" +
+        "1. Select a CSV file with one computer name per line and click 'Start Scan'." + "`r`n" +
+        "2. Or type a full or partial computer name in 'Manual Computer Search' and click 'Search'." + "`r`n" +
+        "   - If multiple matches are found, you can select one or more from the popup." + "`r`n" +
+        "3. View results in the grid and export them with 'Export Results'.",
+        "Help",
+        'OK',
+        'Information'
+    ) | Out-Null
+})
+
+# Close
+$btnClose.Add_Click({
+    $window.Close()
+})
+
+# Show window
+$window.ShowDialog() | Out-Null
+
+# Cleanup
+$ps.Dispose()
+$runspace.Close()
+$runspace.Dispose()
+
+
+
+
+
