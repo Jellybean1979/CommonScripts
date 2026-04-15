@@ -1,5 +1,10 @@
 Add-Type -AssemblyName PresentationFramework
 
+# ---------------- IMAGE PATH FIX ----------------
+# Ensure relative image paths resolve from the script's own folder
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $scriptDir
+
 # ---------------- CONFIG ----------------
 $server = "mdvl-qs-150v"
 $printers = Get-Printer -ComputerName $server
@@ -59,10 +64,11 @@ $xaml = @"
                    Source="186ARW NoBG.jpg"
                    Height="60"
                    Margin="0,0,15,0"
-                   Stretch="Uniform"/>
+                   Stretch="Uniform"
+                   VerticalAlignment="Center"/>
 
             <!-- Center Title -->
-            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+            <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="186th ARW Printer Selector"
                            FontSize="22"
                            FontWeight="Bold"
@@ -79,7 +85,8 @@ $xaml = @"
                    Source="186CS NoBG.png"
                    Height="60"
                    Margin="15,0,0,0"
-                   Stretch="Uniform"/>
+                   Stretch="Uniform"
+                   VerticalAlignment="Center"/>
         </Grid>
 
         <!-- Department Row -->
