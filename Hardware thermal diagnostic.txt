@@ -1,0 +1,26 @@
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:676 char:19
++   cornerRadius: 4,
++                   ~
+Missing expression after ',' in pipeline element.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:847 char:78
++ ... .Max) Â°C", "$($tempStats.Avg) Â°C", "$($tempStats.Min) Â°C") -Foregr ...
++                                                                 ~
+Unexpected token ')' in expression or statement.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:848 char:18
++ ... -Host ("  â”‚  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  â”‚" ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unexpected token '‚  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  â”‚' in expression or statement.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:848 char:18
++ Write-Host ("  â”‚  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  ...
++                  ~
+Missing closing ')' in expression.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:852 char:70
++ ... t ("  â”‚  Throttle Events : {0,-37}  â”‚" -f $throttleCount) -Foregr ...
++                                                                 ~
+Unexpected token ')' in expression or statement.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:855 char:103
++ ... f ($OutputHTML -replace '^.{0}','' | Select-Object -First 1)) -Foregr ...
++                                                                 ~
+Unexpected token ')' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingExpression
