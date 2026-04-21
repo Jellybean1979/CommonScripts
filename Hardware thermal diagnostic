@@ -1,0 +1,68 @@
+# ================================
+# CPU / Thermal Diagnostic Logger
+# ================================
+# Creates a timestamped CSV in the user's Documents folder.
+# Logs CPU temp, clock speed, load %, and (if available) throttling flags.
+
+$OutputPath = "$env:USERPROFILE\Documents\ThermalDiag_$((Get-Date).ToString('yyyyMMdd_HHmmss')).csv"
+
+"Timestamp,CPU_Temp_C,CPU_Clock_MHz,CPU_Load_Percent,Thermal_Throttle,Power_Throttle,Fan_RPM" | Out-File $OutputPath
+
+# Try to load OpenHardwareMonitorLib if present
+$ohmPath = "C:\Program Files\OpenHardwareMonitor\OpenHardwareMonitorLib.dll"
+if (Test-Path $ohmPath) {
+    [void][Reflection.Assembly]::LoadFile($ohmPath)
+    $computer = New-Object OpenHardwareMonitor.Hardware.Computer
+    $computer.CPUEnabled = $true
+    $computer.MainboardEnabled = $true
+    $computer.FanControllerEnabled = $true
+    $computer.Open()
+}
+
+Write-Host "Logging hardware telemetry every 5 seconds. Press CTRL+C to stop."
+while ($true) {
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+    $cpuTemp = ""
+    $cpuClock = ""
+    $cpuLoad = ""
+    $thermalThrottle = ""
+    $powerThrottle = ""
+    $fanRPM = ""
+
+    if ($computer) {
+        foreach ($hw in $computer.Hardware) {
+            $hw.Update()
+            if ($hw.HardwareType -eq "CPU") {
+                foreach ($sensor in $hw.Sensors) {
+                    if ($sensor.SensorType -eq "Temperature" -and $sensor.Name -like "*Package*") {
+                        $cpuTemp = [math]::Round($sensor.Value, 0)
+                    }
+                    if ($sensor.SensorType -eq "Clock" -and $sensor.Name -like "*Core #1*") {
+                        $cpuClock = [math]::Round($sensor.Value, 0)
+                    }
+                    if ($sensor.SensorType -eq "Load" -and $sensor.Name -eq "CPU Total") {
+                        $cpuLoad = [math]::Round($sensor.Value, 0)
+                    }
+                }
+            }
+            if ($hw.HardwareType -eq "Mainboard") {
+                foreach ($sensor in $hw.Sensors) {
+                    if ($sensor.SensorType -eq "Fan") {
+                        $fanRPM = [math]::Round($sensor.Value, 0)
+                    }
+                }
+            }
+        }
+    }
+
+    # Fallback if OHM isn't installed
+    if (-not $cpuLoad) {
+        $cpuLoad = (Get-Counter '\Processor(_Total)\% Processor Time').CounterSamples.CookedValue
+        $cpuLoad = [math]::Round($cpuLoad, 0)
+    }
+
+    "$timestamp,$cpuTemp,$cpuClock,$cpuLoad,$thermalThrottle,$powerThrottle,$fanRPM" | Out-File $OutputPath -Append
+
+    Start-Sleep -Seconds 5
+}
