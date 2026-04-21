@@ -566,36 +566,36 @@ $html = @"
   <div class="summary-grid">
     <div class="stat-card$(if ([double]$tempStats.Max -ge $ThermalThresholdC) {' danger'} elseif ([double]$tempStats.Max -ge 80) {' warn'} else {' ok'})">
       <div class="stat-label">Peak Temp</div>
-      <div class="stat-value">$($tempStats.Max)<span class="unit">°C</span></div>
-      <div class="stat-range">Min <b>$($tempStats.Min)°C</b> · Avg <b>$($tempStats.Avg)°C</b></div>
+      <div class="stat-value">$($tempStats.Max)<span class="unit">C</span></div>
+      <div class="stat-range">Min <b>$($tempStats.Min)C</b> / Avg <b>$($tempStats.Avg)C</b></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Peak Clock</div>
       <div class="stat-value">$($clockStats.Max)<span class="unit">MHz</span></div>
-      <div class="stat-range">Min <b>$($clockStats.Min)</b> · Avg <b>$($clockStats.Avg)</b></div>
+      <div class="stat-range">Min <b>$($clockStats.Min)</b> / Avg <b>$($clockStats.Avg)</b></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Peak Load</div>
       <div class="stat-value">$($loadStats.Max)<span class="unit">%</span></div>
-      <div class="stat-range">Min <b>$($loadStats.Min)%</b> · Avg <b>$($loadStats.Avg)%</b></div>
+      <div class="stat-range">Min <b>$($loadStats.Min)%</b> / Avg <b>$($loadStats.Avg)%</b></div>
     </div>
     <div class="stat-card$(if ($throttleCount -gt 0) {' danger'} else {' ok'})">
       <div class="stat-label">Throttle Events</div>
       <div class="stat-value">$throttleCount<span class="unit">×</span></div>
-      <div class="stat-range">Thermal threshold <b>${ThermalThresholdC}°C</b> · Clock drop <b>$(($ClockDropPct * 100))%</b></div>
+      <div class="stat-range">Thermal threshold <b>${ThermalThresholdC}C</b> / Clock drop <b>$(($ClockDropPct * 100))%</b></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Duration</div>
       <div class="stat-value">$DurationSeconds<span class="unit">s</span></div>
-      <div class="stat-range">Interval <b>${SampleIntervalSec}s</b> · Threads <b>$StressThreads</b></div>
+      <div class="stat-range">Interval <b>${SampleIntervalSec}s</b> / Threads <b>$StressThreads</b></div>
     </div>
   </div>
 
   <!-- Throttle Banner -->
   $(if ($throttleCount -gt 0) {
-    "<div class='throttle-banner'><div class='throttle-icon'>⚠</div><div class='throttle-text'><strong>$throttleCount throttling event(s) detected</strong><span>CPU was throttled during this test run. Review the charts and table below for affected time windows.</span></div></div>"
+    "<div class='throttle-banner'><div class='throttle-icon'>[!!]</div><div class='throttle-text'><strong>$throttleCount throttling event(s) detected</strong><span>CPU was throttled during this test run. Review the charts and table below for affected time windows.</span></div></div>"
   } else {
-    "<div class='throttle-banner none'><div class='throttle-icon'>✓</div><div class='throttle-text'><strong>No throttling detected</strong><span>CPU maintained stable clocks and temperatures throughout the test.</span></div></div>"
+    "<div class='throttle-banner none'><div class='throttle-icon'>[OK]</div><div class='throttle-text'><strong>No throttling detected</strong><span>CPU maintained stable clocks and temperatures throughout the test.</span></div></div>"
   })
 
   <!-- Charts -->
@@ -603,7 +603,7 @@ $html = @"
   <div class="charts-grid">
 
     <div class="chart-card wide">
-      <div class="chart-title">CPU Temperature (°C)</div>
+      <div class="chart-title">CPU Temperature (C)</div>
       <div class="chart-canvas-wrap tall"><canvas id="chartTemp"></canvas></div>
     </div>
 
@@ -630,7 +630,7 @@ $html = @"
       <thead>
         <tr>
           <th>Timestamp</th>
-          <th>Temp (°C)</th>
+          <th>Temp (C)</th>
           <th>Clock (MHz)</th>
           <th>Load (%)</th>
           <th>Fan (RPM)</th>
@@ -782,7 +782,7 @@ function makeChart(id, label, data, color, yLabel) {
       plugins: {
         legend: { display: false },
         tooltip: { ...defTooltip, mode: 'index', intersect: false,
-          callbacks: { label: ctx => ' ' + ctx.parsed.y + ' °C' }
+          callbacks: { label: ctx => ' ' + ctx.parsed.y + ' C' }
         },
         annotation: {}
       },
@@ -819,7 +819,7 @@ function makeChart(id, label, data, color, yLabel) {
           c.stroke();
           c.fillStyle = 'rgba(244,67,54,0.7)';
           c.font = "10px 'Share Tech Mono', monospace";
-          c.fillText('thermal limit ' + threshold + '°C', chartArea.left + 6, yPos - 5);
+          c.fillText('thermal limit ' + threshold + 'C', chartArea.left + 6, yPos - 5);
           c.restore();
         }
       }
