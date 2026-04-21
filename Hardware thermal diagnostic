@@ -7,28 +7,28 @@
 param(
     [int]   $DurationSeconds   = 120,    # Total run time (stress + monitor)
     [int]   $SampleIntervalSec = 3,      # Seconds between data samples
-    [int]   $ThermalThresholdC = 90,     # Temp (°C) flagged as thermal throttle
+    [int]   $ThermalThresholdC = 90,     # Temp ( degC) flagged as thermal throttle
     [float] $ClockDropPct      = 0.15,   # Fractional clock drop to flag power throttle
     [int]   $StressThreads     = 0,      # 0 = auto (all logical cores)
     [switch]$NoStressTest                # Monitor only, no load generation
 )
 
-# ── Output paths ───────────────────────────────────────────────────────────────
+# -- Output paths --------------------------------------------------------------
 $stamp      = (Get-Date).ToString('yyyyMMdd_HHmmss')
 $OutputCSV  = "$env:USERPROFILE\Documents\ThermalDiag_$stamp.csv"
 $OutputHTML = "$env:USERPROFILE\Documents\ThermalDiag_$stamp.html"
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# -- Helpers --------------------------------------------------------------------
 function Write-Banner {
     Clear-Host
     Write-Host ""
-    Write-Host "  ████████╗██╗  ██╗███████╗██████╗ ███╗   ███╗ █████╗ ██╗      " -ForegroundColor Cyan
-    Write-Host "     ██╔══╝██║  ██║██╔════╝██╔══██╗████╗ ████║██╔══██╗██║      " -ForegroundColor Cyan
-    Write-Host "     ██║   ███████║█████╗  ██████╔╝██╔████╔██║███████║██║      " -ForegroundColor Cyan
-    Write-Host "     ██║   ██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══██║██║      " -ForegroundColor DarkCyan
-    Write-Host "     ██║   ██║  ██║███████╗██║  ██║██║ ╚═╝ ██║██║  ██║███████╗ " -ForegroundColor DarkCyan
-    Write-Host "     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝ " -ForegroundColor DarkCyan
-    Write-Host "  DIAGNOSTICS v2.0  —  Stress · Monitor · Throttle Detection   " -ForegroundColor DarkGray
+    Write-Host "  ########+##+  ##+#######+######+ ###+   ###+ #####+ ##+      " -ForegroundColor Cyan
+    Write-Host "     ##+==+##|  ##|##+====+##+==##+####+ ####|##+==##+##|      " -ForegroundColor Cyan
+    Write-Host "     ##|   #######|#####+  ######++##+####+##|#######|##|      " -ForegroundColor Cyan
+    Write-Host "     ##|   ##+==##|##+==+  ##+==##+##|+##++##|##+==##|##|      " -ForegroundColor DarkCyan
+    Write-Host "     ##|   ##|  ##|#######+##|  ##|##| +=+ ##|##|  ##|#######+ " -ForegroundColor DarkCyan
+    Write-Host "     +=+   +=+  +=++======++=+  +=++=+     +=++=+  +=++======+ " -ForegroundColor DarkCyan
+    Write-Host "  DIAGNOSTICS v2.0  -  Stress - Monitor - Throttle Detection   " -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -36,7 +36,7 @@ function Write-Status ($msg, $color = "White") {
     Write-Host "  [$(Get-Date -Format 'HH:mm:ss')]  $msg" -ForegroundColor $color
 }
 
-# ── Try loading OpenHardwareMonitor ────────────────────────────────────────────
+# -- Try loading OpenHardwareMonitor --------------------------------------------
 $ohmPath = "C:\Program Files\OpenHardwareMonitor\OpenHardwareMonitorLib.dll"
 $computer = $null
 if (Test-Path $ohmPath) {
@@ -47,17 +47,17 @@ if (Test-Path $ohmPath) {
         $computer.MainboardEnabled    = $true
         $computer.FanControllerEnabled = $true
         $computer.Open()
-        Write-Status "OpenHardwareMonitor loaded — full sensor data available." "Green"
+        Write-Status "OpenHardwareMonitor loaded - full sensor data available." "Green"
     } catch {
         Write-Status "OHM found but failed to load: $_" "Yellow"
         $computer = $null
     }
 } else {
-    Write-Status "OpenHardwareMonitor not found — using WMI/PerfCounter fallback." "Yellow"
+    Write-Status "OpenHardwareMonitor not found - using WMI/PerfCounter fallback." "Yellow"
     Write-Status "Install OHM for temp + fan sensor data: openHardwareMonitor.org" "DarkGray"
 }
 
-# ── CPU Stress Test via Runspaces ──────────────────────────────────────────────
+# -- CPU Stress Test via Runspaces ----------------------------------------------
 $stressRunspaces = @()
 $stressHandles   = @()
 
@@ -72,7 +72,7 @@ if (-not $NoStressTest) {
         $end = [DateTime]::UtcNow.AddSeconds($DurationSeconds)
         $x   = [double]1.0000001
         while ([DateTime]::UtcNow -lt $end) {
-            # Tight floating-point loop — maximises IPC and thermal load
+            # Tight floating-point loop - maximises IPC and thermal load
             for ($i = 0; $i -lt 500000; $i++) {
                 $x = [Math]::Sqrt($x * 1.0000001 + 0.0000001)
                 $x = [Math]::Sin($x) * [Math]::Cos($x) + 1.0000001
@@ -96,11 +96,11 @@ if (-not $NoStressTest) {
     Write-Status "Stress test skipped (monitor-only mode)." "DarkGray"
 }
 
-# ── CSV Header ─────────────────────────────────────────────────────────────────
+# -- CSV Header -----------------------------------------------------------------
 "Timestamp,CPU_Temp_C,CPU_Clock_MHz,CPU_Load_Pct,Thermal_Throttle,Clock_Throttle,Fan_RPM" |
     Out-File $OutputCSV -Encoding UTF8
 
-# ── Data Collection Loop ───────────────────────────────────────────────────────
+# -- Data Collection Loop -------------------------------------------------------
 $samples      = [System.Collections.Generic.List[PSObject]]::new()
 $maxClock     = 0.0
 $throttleCount = 0
@@ -109,8 +109,8 @@ $elapsed      = 0
 Write-Status "Collecting samples every $SampleIntervalSec s  (Ctrl+C to stop early)." "White"
 Write-Host ""
 Write-Host ("  {0,-20}  {1,8}  {2,10}  {3,8}  {4,10}  {5,8}" -f
-    "Timestamp","Temp °C","Clock MHz","Load %","Throttle","Fan RPM") -ForegroundColor DarkGray
-Write-Host ("  " + ("─" * 75)) -ForegroundColor DarkGray
+    "Timestamp","Temp  degC","Clock MHz","Load %","Throttle","Fan RPM") -ForegroundColor DarkGray
+Write-Host ("  " + ("-" * 75)) -ForegroundColor DarkGray
 
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 
@@ -123,7 +123,7 @@ try {
         $cpuLoad  = ""
         $fanRPM   = ""
 
-        # ── OHM sensor read ──────────────────────────────────────────────────
+        # -- OHM sensor read --------------------------------------------------
         if ($computer) {
             foreach ($hw in $computer.Hardware) {
                 $hw.Update()
@@ -150,7 +150,7 @@ try {
             }
         }
 
-        # ── Fallback — PerfCounter for load ─────────────────────────────────
+        # -- Fallback - PerfCounter for load ---------------------------------
         if ($cpuLoad -eq "") {
             try {
                 $cpuLoad = [math]::Round(
@@ -158,7 +158,7 @@ try {
             } catch { $cpuLoad = "" }
         }
 
-        # ── Throttle detection ───────────────────────────────────────────────
+        # -- Throttle detection -----------------------------------------------
         $thermalFlag = $false
         $clockFlag   = $false
 
@@ -178,7 +178,7 @@ try {
         $anyThrottle = $thermalFlag -or $clockFlag
         if ($anyThrottle) { $throttleCount++ }
 
-        # ── Store sample ─────────────────────────────────────────────────────
+        # -- Store sample -----------------------------------------------------
         $row = [PSCustomObject]@{
             Timestamp      = $ts
             CPU_Temp_C     = $cpuTemp
@@ -192,9 +192,9 @@ try {
         "$ts,$cpuTemp,$cpuClock,$cpuLoad,$([int]$thermalFlag),$([int]$clockFlag),$fanRPM" |
             Out-File $OutputCSV -Append -Encoding UTF8
 
-        # ── Console row ──────────────────────────────────────────────────────
+        # -- Console row ------------------------------------------------------
         $tColor = if ($anyThrottle) { "Red" } elseif ($cpuTemp -gt 80) { "Yellow" } else { "Green" }
-        $tFlag  = if ($anyThrottle) { "⚠ THROTTLE" } else { "  OK" }
+        $tFlag  = if ($anyThrottle) { "!! THROTTLE" } else { "  OK" }
         Write-Host ("  {0,-20}  {1,8}  {2,10}  {3,8}  {4,10}  {5,8}" -f
             $ts, $cpuTemp, $cpuClock, $cpuLoad, $tFlag, $fanRPM) -ForegroundColor $tColor
 
@@ -202,7 +202,7 @@ try {
     }
 }
 finally {
-    # ── Stop stress threads ──────────────────────────────────────────────────
+    # -- Stop stress threads --------------------------------------------------
     if ($stressRunspaces.Count -gt 0) {
         Write-Host ""
         Write-Status "Stopping stress threads..." "DarkGray"
@@ -213,7 +213,7 @@ finally {
     $stopwatch.Stop()
 }
 
-# ── Summary stats ──────────────────────────────────────────────────────────────
+# -- Summary stats --------------------------------------------------------------
 $validTemps  = $samples | Where-Object { $_.CPU_Temp_C  -ne "" } | ForEach-Object { [double]$_.CPU_Temp_C  }
 $validClocks = $samples | Where-Object { $_.CPU_Clock_MHz -ne "" } | ForEach-Object { [double]$_.CPU_Clock_MHz }
 $validLoads  = $samples | Where-Object { $_.CPU_Load_Pct -ne "" } | ForEach-Object { [double]$_.CPU_Load_Pct  }
@@ -231,7 +231,7 @@ $tempStats  = Get-Stats $validTemps
 $clockStats = Get-Stats $validClocks
 $loadStats  = Get-Stats $validLoads
 
-# ── Build HTML Report ──────────────────────────────────────────────────────────
+# -- Build HTML Report ----------------------------------------------------------
 Write-Host ""
 Write-Status "Generating HTML report..." "Cyan"
 
@@ -838,22 +838,22 @@ makeChart('chartFan',   'Fan RPM',    fans,   '#b39ddb',  'RPM');
 
 $html | Out-File $OutputHTML -Encoding UTF8
 
-# ── Final Summary ──────────────────────────────────────────────────────────────
+# -- Final Summary -------------------------------------------------------------
 Write-Host ""
-Write-Host "  ┌─────────────────────────────────────────────────────────┐" -ForegroundColor DarkCyan
-Write-Host "  │  RESULTS SUMMARY                                        │" -ForegroundColor DarkCyan
-Write-Host "  ├─────────────────────────────────────────────────────────┤" -ForegroundColor DarkCyan
-Write-Host ("  │  Peak Temp   : {0,-10}  Avg: {1,-10}  Min: {2,-8}  │" -f
-    "$($tempStats.Max) °C", "$($tempStats.Avg) °C", "$($tempStats.Min) °C") -ForegroundColor White
-Write-Host ("  │  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  │" -f
+Write-Host "  +----------------------------------------------------------+" -ForegroundColor DarkCyan
+Write-Host "  |  RESULTS SUMMARY                                         |" -ForegroundColor DarkCyan
+Write-Host "  +----------------------------------------------------------+" -ForegroundColor DarkCyan
+Write-Host ("  |  Peak Temp   : {0,-10}  Avg: {1,-10}  Min: {2,-8}  |" -f
+    "$($tempStats.Max) degC", "$($tempStats.Avg) degC", "$($tempStats.Min) degC") -ForegroundColor White
+Write-Host ("  |  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  |" -f
     "$($clockStats.Max) MHz", "$($clockStats.Avg) MHz", "$($clockStats.Min) MHz") -ForegroundColor White
-Write-Host ("  │  Peak Load   : {0,-10}  Avg: {1,-10}  Min: {2,-8}  │" -f
+Write-Host ("  |  Peak Load   : {0,-10}  Avg: {1,-10}  Min: {2,-8}  |" -f
     "$($loadStats.Max) %", "$($loadStats.Avg) %", "$($loadStats.Min) %") -ForegroundColor White
-Write-Host ("  │  Throttle Events : {0,-37}  │" -f $throttleCount) -ForegroundColor $(if ($throttleCount -gt 0) { "Red" } else { "Green" })
-Write-Host "  ├─────────────────────────────────────────────────────────┤" -ForegroundColor DarkCyan
-Write-Host ("  │  CSV  : {0,-48}  │" -f ($OutputCSV  -replace '^.{0}','' | Select-Object -First 1)) -ForegroundColor DarkGray
-Write-Host ("  │  HTML : {0,-48}  │" -f ($OutputHTML -replace '^.{0}','' | Select-Object -First 1)) -ForegroundColor DarkGray
-Write-Host "  └─────────────────────────────────────────────────────────┘" -ForegroundColor DarkCyan
+Write-Host ("  |  Throttle Events : {0,-38} |" -f $throttleCount) -ForegroundColor $(if ($throttleCount -gt 0) { "Red" } else { "Green" })
+Write-Host "  +----------------------------------------------------------+" -ForegroundColor DarkCyan
+Write-Host ("  |  CSV  : {0,-49} |" -f $OutputCSV)  -ForegroundColor DarkGray
+Write-Host ("  |  HTML : {0,-49} |" -f $OutputHTML) -ForegroundColor DarkGray
+Write-Host "  +----------------------------------------------------------+" -ForegroundColor DarkCyan
 Write-Host ""
 
 # Auto-open the HTML report
