@@ -1,26 +1,22 @@
-At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:676 char:19
-+   cornerRadius: 4,
-+                   ~
-Missing expression after ',' in pipeline element.
-At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:847 char:78
-+ ... .Max) Â°C", "$($tempStats.Avg) Â°C", "$($tempStats.Min) Â°C") -Foregr ...
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:598 char:70
++ ...  class='throttle-banner none'><div class='throttle-icon'>âœ“</div><di ...
 +                                                                 ~
-Unexpected token ')' in expression or statement.
-At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:848 char:18
-+ ... -Host ("  â”‚  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  â”‚" ...
-+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Unexpected token '‚  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  â”‚' in expression or statement.
-At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:848 char:18
-+ Write-Host ("  â”‚  Peak Clock  : {0,-10}  Avg: {1,-10}  Min: {2,-8}  ...
-+                  ~
-Missing closing ')' in expression.
-At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:852 char:70
-+ ... t ("  â”‚  Throttle Events : {0,-37}  â”‚" -f $throttleCount) -Foregr ...
-+                                                                 ~
-Unexpected token ')' in expression or statement.
-At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:855 char:103
-+ ... f ($OutputHTML -replace '^.{0}','' | Select-Object -First 1)) -Foregr ...
-+                                                                 ~
-Unexpected token ')' in expression or statement.
+The '<' operator is reserved for future use.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:598 char:81
++ ... throttle-icon'>âœ“</div><div class='throttle-text'><strong>No throttl ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unexpected token 'class='throttle-text'><strong>No' in expression or statement.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:598 char:233
++ ... able clocks and temperatures throughout the test.</span></div></div>"
++                                                                         ~
+The string is missing the terminator: ".
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:597 char:10
++   } else {
++          ~
+Missing closing '}' in statement block or type definition.
+At C:\Users\1124220730N\OneDrive - United States Air Force\Desktop\Hardware Thermal Diagnostic.ps1:599 char:6
++   })
++      ~
+Missing closing ')' in subexpression.
     + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : MissingExpression
+    + FullyQualifiedErrorId : RedirectionNotSupported
